@@ -16,6 +16,13 @@ interface HorizontalFlowProps {
   getCategoryNameForCourse: (course: Course) => string;
 }
 
+// FIX: Define an interface for graph nodes to help with type inference.
+interface GraphNode {
+  course: Course;
+  children: Set<string>;
+  parents: Set<string>;
+}
+
 const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
     courses, onEditCourse, highlightMode, departmentColors, areaColors, hiddenCategories, getCategoryNameForCourse
 }) => {
@@ -28,7 +35,7 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
         const courseMap = new Map(courses.map(c => [c.id, c]));
 
         // Build graph with children references
-        const graph = new Map(courses.map(c => [c.id, { course: c, children: new Set<string>(), parents: new Set<string>(c.prerequisites) }]));
+        const graph = new Map<string, GraphNode>(courses.map(c => [c.id, { course: c, children: new Set<string>(), parents: new Set<string>(c.prerequisites) }]));
         courses.forEach(c => {
             c.prerequisites.forEach(prereqId => {
                 const prereqNode = graph.get(prereqId);
@@ -68,8 +75,9 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
         uniquePaths.sort((a, b) => {
             // Sort by path length, then by last element's semester, then ID
             if (a.length !== b.length) return a.length - b.length;
-            const lastA = courseMap.get(a[a.length - 1]);
-            const lastB = courseMap.get(b[b.length - 1]);
+            // FIX: Add explicit types to fix errors on .semester and .id
+            const lastA: Course | undefined = courseMap.get(a[a.length - 1]);
+            const lastB: Course | undefined = courseMap.get(b[b.length - 1]);
             if (!lastA || !lastB) return 0;
             if (lastA.semester !== lastB.semester) return lastA.semester - lastB.semester;
             return lastA.id.localeCompare(lastB.id);
@@ -95,7 +103,8 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
 
         uniquePaths.forEach((path, pathIndex) => {
             path.forEach((courseId, courseIndex) => {
-                const course = courseMap.get(courseId);
+                // FIX: Add explicit type to fix errors on .id, .semester, etc.
+                const course: Course | undefined = courseMap.get(courseId);
                 if (!course) return;
 
                 nodes.push({
@@ -107,7 +116,8 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
 
                 if (courseIndex > 0) {
                     const prevCourseId = path[courseIndex - 1];
-                    const prevCourse = courseMap.get(prevCourseId);
+                    // FIX: Add explicit type to fix errors on .id
+                    const prevCourse: Course | undefined = courseMap.get(prevCourseId);
                     if (prevCourse) {
                         const edgeId = `${pathIndex}:${prevCourseId}>${courseId}`;
                         if (!pathConnections.has(edgeId)) {

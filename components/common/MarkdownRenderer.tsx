@@ -13,7 +13,8 @@ const MarkdownRenderer: React.FC<{ content: string | undefined | null }> = ({ co
     };
 
     const lines = content.split('\n');
-    const elements: JSX.Element[] = [];
+    // FIX: Changed JSX.Element to React.ReactElement to resolve namespace error.
+    const elements: React.ReactElement[] = [];
     let listItems: string[] = [];
 
     const flushList = () => {

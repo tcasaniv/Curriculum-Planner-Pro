@@ -53,7 +53,9 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
   const handleApplyFilter = () => {
     if (!openFilterDropdown) return;
     const newFilters = { ...filters };
-    if (tempFilterSelection.size > 0 && tempFilterSelection.size < uniqueColumnValues[openFilterDropdown].size) {
+    const columnUniqueValues = uniqueColumnValues[openFilterDropdown];
+    // FIX: Add guard for columnUniqueValues
+    if (columnUniqueValues && tempFilterSelection.size > 0 && tempFilterSelection.size < columnUniqueValues.size) {
         newFilters[openFilterDropdown] = tempFilterSelection;
     } else {
         delete newFilters[openFilterDropdown];
@@ -76,9 +78,11 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
   const currentFilterOptions = useMemo(() => {
     if (!openFilterDropdown) return [];
     const options = Array.from(uniqueColumnValues[openFilterDropdown] || []);
-    const sortedOptions = options.sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+    // FIX: Cast to string before calling localeCompare to fix 'unknown' type error.
+    const sortedOptions = options.sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
     if (!filterSearch) return sortedOptions;
-    return sortedOptions.filter(opt => opt.toLowerCase().includes(filterSearch.toLowerCase()));
+    // FIX: Cast to string before calling toLowerCase to fix 'unknown' type error.
+    return sortedOptions.filter(opt => String(opt).toLowerCase().includes(filterSearch.toLowerCase()));
   }, [openFilterDropdown, filterSearch, uniqueColumnValues]);
 
   const handleSelectAll = () => setTempFilterSelection(new Set(currentFilterOptions));
@@ -102,7 +106,8 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
         processedCourses = processedCourses.filter(course => {
             return activeFilters.every(([key, selectedValues]) => {
                 const courseValue = getCourseValue(course, key as SortKey);
-                return selectedValues.has(String(courseValue));
+                // FIX: Cast selectedValues to Set<string> to fix 'unknown' type error on .has
+                return (selectedValues as Set<string>).has(String(courseValue));
             });
         });
     }

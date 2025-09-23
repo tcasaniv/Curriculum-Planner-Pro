@@ -24,6 +24,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
   const [isFreeDragMode, setIsFreeDragMode] = useState(false);
   const [isOrthogonalRouting, setIsOrthogonalRouting] = useState(false);
   const [isHorizontalFlowMode, setIsHorizontalFlowMode] = useState(false);
+  const [isLegendVisible, setIsLegendVisible] = useState(true);
   
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
@@ -251,7 +252,8 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
     if (!autoLayoutData || !isDragActive) return autoLayoutData;
 
     const nodes = courses.map(course => {
-      const autoNodeForPos = autoLayoutData.nodes.find(n => n.course.id === course.id);
+      // FIX: Add explicit type for autoNodeForPos to help compiler with type inference
+      const autoNodeForPos: { course: Course; x: number; y: number } | undefined = autoLayoutData.nodes.find(n => n.course.id === course.id);
       const pos = nodePositions.get(course.id) ?? {x: autoNodeForPos?.x ?? 0, y: autoNodeForPos?.y ?? 0};
       return { course, ...pos };
     });
@@ -553,6 +555,8 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
             onIsHorizontalFlowModeChange={handleHorizontalFlowToggle}
             highlightMode={highlightMode}
             onHighlightModeChange={setHighlightMode}
+            isLegendVisible={isLegendVisible}
+            onLegendVisibleChange={setIsLegendVisible}
         />
         <div className="flex-grow flex overflow-hidden">
             <div className="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900 relative">
@@ -570,6 +574,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
                     renderSemesterFlowchart() 
                 )}
             </div>
+            {isLegendVisible && (
              <aside className="w-72 bg-white dark:bg-gray-800 p-4 overflow-y-auto border-l border-gray-200 dark:border-gray-700 shrink-0">
                 <FlowchartLegend
                     highlightMode={highlightMode}
@@ -581,6 +586,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
                     hiddenCategories={hiddenCategories}
                 />
             </aside>
+            )}
         </div>
       <CourseDetailsModal course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={courses} onEdit={onEditCourse} />
     </div>

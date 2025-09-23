@@ -17,6 +17,8 @@ interface FlowchartControlsProps {
     onIsHorizontalFlowModeChange: (checked: boolean) => void;
     highlightMode: HighlightMode;
     onHighlightModeChange: (mode: HighlightMode) => void;
+    isLegendVisible: boolean;
+    onLegendVisibleChange: (checked: boolean) => void;
 }
 
 const Toggle: React.FC<{id: string, label: string, checked: boolean, onChange: (checked: boolean) => void, disabled?: boolean}> = 
@@ -46,7 +48,8 @@ const FlowchartControls: React.FC<FlowchartControlsProps> = ({
     isFreeDragMode, onFreeDragModeChange,
     isGridSnapMode, onGridSnapModeChange,
     isHorizontalFlowMode, onIsHorizontalFlowModeChange,
-    highlightMode, onHighlightModeChange
+    highlightMode, onHighlightModeChange,
+    isLegendVisible, onLegendVisibleChange
 }) => {
     const isSpecialViewActive = isFreeDragMode || isGridSnapMode || isHorizontalFlowMode;
 
@@ -95,11 +98,20 @@ const FlowchartControls: React.FC<FlowchartControlsProps> = ({
                     onChange={onFreeDragModeChange}
                 />
             </div>
-            <div className="flex items-center space-x-2">
-                <span className="font-semibold text-sm">Resaltar por:</span>
-                <select value={highlightMode} onChange={e => onHighlightModeChange(e.target.value as HighlightMode)} className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm border border-gray-300 dark:border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                    {HIGHLIGHT_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
-                </select>
+            <div className="flex items-center gap-4 flex-wrap">
+                <Toggle
+                    id="legend-toggle"
+                    label="Leyenda"
+                    checked={isLegendVisible}
+                    onChange={onLegendVisibleChange}
+                />
+                <span className="h-6 w-px bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
+                <div className="flex items-center space-x-2">
+                    <span className="font-semibold text-sm">Resaltar por:</span>
+                    <select value={highlightMode} onChange={e => onHighlightModeChange(e.target.value as HighlightMode)} className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm border border-gray-300 dark:border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        {HIGHLIGHT_MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
+                    </select>
+                </div>
             </div>
         </div>
     );
