@@ -12,10 +12,16 @@ import MarkdownRenderer from './MarkdownRenderer';
 const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void, allCourses: Course[], onEdit: (course: Course) => void }> = ({ course, onClose, allCourses, onEdit }) => {
     if (!course) return null;
 
-    const prerequisitesNames = course.prerequisites
-        .map(prereqId => allCourses.find(c => c.id === prereqId)?.name)
-        .filter(Boolean)
-        .join(', ');
+    const prerequisites = course.prerequisites
+        .map(prereqId => {
+            const prereqCourse = allCourses.find(c => c.id === prereqId);
+            return prereqCourse ? { id: prereqCourse.id, name: prereqCourse.name } : null;
+        })
+        .filter((c): c is { id: string; name: string } => c !== null);
+
+    const dependentCourses = allCourses
+        .filter(c => c.prerequisites.includes(course.id))
+        .map(c => ({ id: c.id, name: c.name }));
 
     const totalHours = course.theoryHours + course.practiceHours + course.labHours + course.seminarHours + course.theoryPracticeHours;
 
@@ -33,14 +39,39 @@ const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void,
 
                     <div>
                         <h4 className="font-semibold text-indigo-600 dark:text-indigo-400 border-b border-gray-200 dark:border-gray-700 pb-1 mb-2">Información General</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                            <p><strong className="text-gray-800 dark:text-gray-200">Componente:</strong> {COMPONENT_NAMES[course.competencia]}</p>
                            <p><strong className="text-gray-800 dark:text-gray-200">Tipo:</strong> {COURSE_TYPE_NAMES[course.tipoAsignatura]}</p>
                            <p><strong className="text-gray-800 dark:text-gray-200">Grupo Evaluativo:</strong> {EVALUATION_TYPE_NAMES[course.tipoMedicion]}</p>
                            <p><strong className="text-gray-800 dark:text-gray-200">Modalidad:</strong> {MODALITY_NAMES[course.modality]}</p>
                            <p><strong className="text-gray-800 dark:text-gray-200">Área Académica:</strong> {course.areaAcademica || 'No especificada'}</p>
                            <p><strong className="text-gray-800 dark:text-gray-200">Depto. Académico:</strong> {course.academicDepartments.join(', ') || 'No especificado'}</p>
-                           <p className="md:col-span-2"><strong className="text-gray-800 dark:text-gray-200">Prerrequisitos:</strong> {prerequisitesNames || 'Ninguno'}</p>
+                           
+                           <div className="md:col-span-2">
+                                <strong className="text-gray-800 dark:text-gray-200 block">Prerrequisitos:</strong>
+                                {prerequisites.length > 0 ? (
+                                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        {prerequisites.map(prereq => (
+                                            <li key={prereq.id}>{`${prereq.id} - ${prereq.name}`}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="pl-4 text-sm text-gray-500 dark:text-gray-400 italic">Ninguno</p>
+                                )}
+                            </div>
+                           <div className="md:col-span-2">
+                                <strong className="text-gray-800 dark:text-gray-200 block">Habilita a:</strong>
+                                {dependentCourses.length > 0 ? (
+                                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        {dependentCourses.map(dep => (
+                                            <li key={dep.id}>{`${dep.id} - ${dep.name}`}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="pl-4 text-sm text-gray-500 dark:text-gray-400 italic">Ninguna asignatura</p>
+                                )}
+                            </div>
+                           
                            <p><strong className="text-gray-800 dark:text-gray-200">Créditos Prerreq.:</strong> {course.prerequisiteCredits || '0'}</p>
                         </div>
                     </div>
