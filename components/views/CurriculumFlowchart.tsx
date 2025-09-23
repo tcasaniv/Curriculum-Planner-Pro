@@ -4,10 +4,10 @@ import {
     COMPONENT_COLORS, EVALUATION_TYPE_COLORS, COURSE_TYPE_COLORS,
     COMPONENT_NAMES, EVALUATION_TYPE_NAMES, COURSE_TYPE_NAMES 
 } from '../../constants';
-import { romanize } from '../../utils';
 import CourseDetailsModal from '../common/CourseDetailsModal';
 import FlowchartLegend from './flowchart/FlowchartLegend';
 import HorizontalFlow from './flowchart/HorizontalFlow';
+import SemesterFlow from './flowchart/semester/SemesterFlow';
 
 interface CurriculumFlowchartProps {
   courses: Course[];
@@ -356,172 +356,13 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
   
   if (!courses.length) return <div className="text-center p-8 text-gray-500 dark:text-gray-400">No hay asignaturas para mostrar. Comience añadiendo una o importando un plan.</div>;
 
-  const renderGrid = () => {
-    if (!finalLayoutData) return null;
-    const { numSemesters, width, height, PADDING, HEADER_HEIGHT, COL_WIDTH, COL_GAP, semesterCredits } = finalLayoutData;
-    const gridElements = [];
-
-    for (let i = 0; i < numSemesters; i++) {
-        const x = PADDING + i * COL_WIDTH;
-        const semesterNumber = i + 1;
-        // Header Text
-        gridElements.push(
-            <g key={`header-group-${i}`}>
-                <text x={x + COL_WIDTH/2 - COL_GAP/2} y={PADDING + HEADER_HEIGHT / 2 - 10} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 dark:fill-gray-400" fontSize="18" fontWeight="bold">
-                    {romanize(semesterNumber)}
-                </text>
-                 <text x={x + COL_WIDTH/2 - COL_GAP/2} y={PADDING + HEADER_HEIGHT / 2 + 15} textAnchor="middle" dominantBaseline="middle" className="fill-indigo-600 dark:fill-indigo-400" fontSize="12" fontWeight="semibold">
-                    {`Créditos: ${semesterCredits[semesterNumber] || 0}`}
-                </text>
-            </g>
-        );
-        // Vertical Line
-        if (i < numSemesters -1) {
-             gridElements.push(
-                <line key={`vline-${i}`} x1={x + COL_WIDTH - COL_GAP/2} y1={PADDING} x2={x + COL_WIDTH - COL_GAP/2} y2={height - PADDING} className="stroke-gray-300 dark:stroke-gray-700" strokeWidth="1" />
-             );
-        }
-    }
-     gridElements.push(<line key="hline" x1={PADDING} y1={PADDING + HEADER_HEIGHT} x2={width - PADDING} y2={PADDING + HEADER_HEIGHT} className="stroke-gray-300 dark:stroke-gray-700" strokeWidth="1"/>);
-
-    return <g>{gridElements}</g>;
-  };
-
-
-  const renderSemesterFlowchart = () => {
-    if (!finalLayoutData) return <div className="text-center p-8 text-gray-400">Generando malla curricular...</div>;
-    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
-    
-    return (
-        <svg
-            ref={svgRef} 
-            width={finalLayoutData.width} 
-            height={finalLayoutData.height} 
-            className={`min-w-full ${isDragActive && draggedNode ? 'cursor-grabbing' : ''}`}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-        >
-            <defs>
-                <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" className="fill-gray-400 dark:fill-gray-500" />
-                </marker>
-                 <marker id="arrowhead-highlighted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" className="fill-indigo-500 dark:fill-indigo-400" />
-                </marker>
-            </defs>
-            
-            {renderGrid()}
-
-            <g>
-            {finalLayoutData.edges.map(edge => {
-                const isHighlighted = hoveredCourseId && (edge.sourceId === hoveredCourseId || edge.targetId === hoveredCourseId);
-                const strokeClass = isHighlighted ? 'stroke-indigo-500 dark:stroke-indigo-400' : 'stroke-gray-400 dark:stroke-gray-600';
-                const strokeWidth = isHighlighted ? 2.5 : 1.5;
-                const marker = isHighlighted ? 'url(#arrowhead-highlighted)' : 'url(#arrowhead)';
-
-                if (isOrthogonalRouting) {
-                    const midX = edge.x1 + (edge.x2 - edge.x1) / 2;
-                    let d: string;
-
-                    if (Math.abs(edge.y1 - edge.y2) < 1) { // Use a small tolerance for floating point
-                        d = `M ${edge.x1} ${edge.y1} L ${edge.x2} ${edge.y2}`;
-                    } else {
-                        const radius = 15;
-                        const ySign = Math.sign(edge.y2 - edge.y1);
-                        
-                        const verticalSegmentLength = Math.abs(edge.y2 - edge.y1);
-                        const horizontalSegmentLength = (edge.x2 - edge.x1) / 2;
-                        
-                        const effectiveRadius = Math.max(0, Math.min(radius, verticalSegmentLength / 2, horizontalSegmentLength));
-
-                        if (effectiveRadius > 1) { // Only apply radius if it's meaningful
-                            d = `M ${edge.x1} ${edge.y1} ` +
-                                `L ${midX - effectiveRadius} ${edge.y1} ` +
-                                `Q ${midX} ${edge.y1} ${midX} ${edge.y1 + effectiveRadius * ySign} ` +
-                                `V ${edge.y2 - effectiveRadius * ySign} ` +
-                                `Q ${midX} ${edge.y2} ${midX + effectiveRadius} ${edge.y2} ` +
-                                `L ${edge.x2} ${edge.y2}`;
-                        } else {
-                            // fallback to sharp corners if not enough space for radius
-                            d = `M ${edge.x1} ${edge.y1} H ${midX} V ${edge.y2} H ${edge.x2}`;
-                        }
-                    }
-
-                    return (
-                        <path
-                            key={edge.id}
-                            d={d}
-                            className={`${strokeClass} transition-all duration-200`}
-                            strokeWidth={strokeWidth}
-                            fill="none"
-                            markerEnd={marker}
-                        />
-                    );
-                }
-                return (
-                    <line 
-                        key={edge.id}
-                        x1={edge.x1}
-                        y1={edge.y1}
-                        x2={edge.x2}
-                        y2={edge.y2}
-                        className={`${strokeClass} transition-all duration-200`}
-                        strokeWidth={strokeWidth}
-                        markerEnd={marker}
-                    />
-                );
-            })}
-            </g>
-
-            <g>
-            {finalLayoutData.nodes.map(({ course, x, y }) => {
-                const courseCategoryName = getCategoryNameForCourse(course);
-                const isHidden = hiddenCategories.has(courseCategoryName);
-                
-                let isDimmed = false;
-                if (hoveredCourseId) {
-                    const isHovered = course.id === hoveredCourseId;
-                    const isRelated = relatedCourseIds?.prereqs.has(course.id) || relatedCourseIds?.dependents.has(course.id);
-                    isDimmed = !isHovered && !isRelated;
-                } else {
-                    isDimmed = hoveredCategory ? hoveredCategory !== courseCategoryName : isHidden;
-                }
-                
-                const isInteractive = !isDragActive && !(isHidden && !hoveredCourseId);
-                
-                return (
-                    <g 
-                        key={course.id} 
-                        transform={`translate(${x}, ${y})`} 
-                        className={`group transition-opacity duration-300 ${isDimmed ? 'opacity-20' : 'opacity-100'} ${isDragActive ? 'cursor-grab' : 'cursor-pointer'}`}
-                        onClick={() => isInteractive && setSelectedCourse(course)}
-                        onMouseDown={e => handleMouseDown(e, course.id)}
-                        onMouseEnter={() => isInteractive && setHoveredCourseId(course.id)}
-                        onMouseLeave={() => setHoveredCourseId(null)}
-                    >
-                        <rect width={finalLayoutData.NODE_WIDTH} height={finalLayoutData.NODE_HEIGHT} rx={8} className={`${getHighlightColor(course)} transition-all ${!isDimmed ? 'group-hover:ring-2 group-hover:ring-indigo-400 group-hover:brightness-110' : ''}`} />
-                        <foreignObject width={finalLayoutData.NODE_WIDTH} height={finalLayoutData.NODE_HEIGHT} requiredExtensions="http://www.w3.org/1999/xhtml">
-                            <div className="w-full h-full p-2 flex flex-col justify-center items-center text-center text-white select-none">
-                                <p className="text-xs font-bold leading-tight">{course.name}</p>
-                                <p className="text-[10px] text-gray-200 mt-1">{course.id} &bull; {course.credits}cr</p>
-                            </div>
-                        </foreignObject>
-                    </g>
-                );
-            })}
-            </g>
-        </svg>
-    );
-  };
-
   return (
     <div className="h-full flex flex-col">
         <div className="flex-grow flex overflow-hidden">
             <div className="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900 relative">
                 { viewMode === 'horizontal' ? (
                     <HorizontalFlow 
-                        courses={courses}
+                        courses={courses} 
                         onEditCourse={onEditCourse}
                         highlightMode={highlightMode}
                         departmentColors={departmentColors}
@@ -529,8 +370,28 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
                         hiddenCategories={hiddenCategories}
                         getCategoryNameForCourse={getCategoryNameForCourse}
                     />
+                ) : !finalLayoutData ? (
+                    <div className="text-center p-8 text-gray-400">Generando malla curricular...</div>
                 ) : (
-                    renderSemesterFlowchart() 
+                    <SemesterFlow
+                        finalLayoutData={finalLayoutData}
+                        interactionMode={interactionMode}
+                        draggedNode={draggedNode}
+                        isOrthogonalRouting={isOrthogonalRouting}
+                        hoveredCourseId={hoveredCourseId}
+                        relatedCourseIds={relatedCourseIds}
+                        hiddenCategories={hiddenCategories}
+                        hoveredCategory={hoveredCategory}
+                        getHighlightColor={getHighlightColor}
+                        getCategoryNameForCourse={getCategoryNameForCourse}
+                        svgRef={svgRef}
+                        handleMouseMove={handleMouseMove}
+                        handleMouseUp={handleMouseUp}
+                        onCourseClick={setSelectedCourse}
+                        onCourseMouseDown={handleMouseDown}
+                        onCourseMouseEnter={setHoveredCourseId}
+                        onCourseMouseLeave={() => setHoveredCourseId(null)}
+                    />
                 )}
             </div>
             {isLegendVisible && (
