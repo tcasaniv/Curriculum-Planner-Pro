@@ -107,7 +107,8 @@ const CourseTableView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     const filteredAndSortedCourses = useMemo(() => {
         let processedCourses = [...courses];
         
-        const activeFilters = Object.entries(filters).filter(([, value]) => value && value.size > 0);
+        // FIX: Cast `value` to `Set<string>` to access `.size` property, as `Object.entries` can lead to `unknown` type inference for values.
+        const activeFilters = Object.entries(filters).filter(([, value]) => value && (value as Set<string>).size > 0);
         if (activeFilters.length > 0) {
             processedCourses = processedCourses.filter(course => {
                 return activeFilters.every(([key, selectedValues]) => {
@@ -189,7 +190,7 @@ const CourseTableView: React.FC<{ courses: Course[] }> = ({ courses }) => {
                                     {openFilterDropdown === key && (
                                         <div ref={filterDropdownRef} className="absolute z-20 top-full left-0 mt-1 w-64 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl text-left font-normal normal-case">
                                             <div className="p-2 border-b border-gray-200 dark:border-gray-600">
-                                                <input type="text" placeholder="Buscar valores..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} className="w-full p-1 text-xs bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"/>
+                                                <input type="text" placeholder="Buscar valores..." value={filterSearch} onChange={e => setFilterSearch(e.target.value)} className="w-full p-1 text-xs bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"/>
                                             </div>
                                             <div className="text-xs p-2 flex justify-between">
                                                 <button onClick={handleSelectAll} className="hover:text-indigo-500 dark:hover:text-indigo-400">Seleccionar todo</button>

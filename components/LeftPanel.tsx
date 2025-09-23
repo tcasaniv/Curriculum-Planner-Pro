@@ -101,7 +101,8 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
   const filteredAndSortedCourses = useMemo(() => {
     let processedCourses = [...courses];
     
-    const activeFilters = Object.entries(filters).filter(([, value]) => value && value.size > 0);
+    // FIX: Cast `value` to `Set<string>` to access `.size` property, as `Object.entries` can lead to `unknown` type inference for values.
+    const activeFilters = Object.entries(filters).filter(([, value]) => value && (value as Set<string>).size > 0);
     if (activeFilters.length > 0) {
         processedCourses = processedCourses.filter(course => {
             return activeFilters.every(([key, selectedValues]) => {

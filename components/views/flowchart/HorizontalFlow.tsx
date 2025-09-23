@@ -32,7 +32,8 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
     const layoutData = useMemo(() => {
         if (courses.length === 0) return null;
 
-        const courseMap = new Map(courses.map(c => [c.id, c]));
+        // FIX: Explicitly type `courseMap` to ensure `.get()` returns `Course | undefined` instead of `unknown`.
+        const courseMap = new Map<string, Course>(courses.map(c => [c.id, c]));
 
         // Build graph with children references
         const graph = new Map<string, GraphNode>(courses.map(c => [c.id, { course: c, children: new Set<string>(), parents: new Set<string>(c.prerequisites) }]));

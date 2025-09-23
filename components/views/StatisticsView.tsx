@@ -128,9 +128,9 @@ const StatisticsView: React.FC<{ courses: Course[] }> = ({ courses }) => {
                 {academicYears.map(year => {
                     const s1 = (year - 1) * 2 + 1;
                     const s2 = (year - 1) * 2 + 2;
-                    // FIX: Ensure reduce handles potentially undefined values by coercing to 0.
-                    const s1_total = Object.values(semesterData[s1].mandatory).reduce((a,b)=>a+(b||0),0) + Object.values(semesterData[s1].elective).reduce((a,b)=>a+(b||0),0);
-                    const s2_total = Object.values(semesterData[s2].mandatory).reduce((a,b)=>a+(b||0),0) + Object.values(semesterData[s2].elective).reduce((a,b)=>a+(b||0),0);
+                    // FIX: Ensure reduce handles potentially undefined values by coercing to 0. Also, cast Object.values to number[] to avoid 'unknown' type issues.
+                    const s1_total = (Object.values(semesterData[s1].mandatory) as number[]).reduce((a, b) => a + (b || 0), 0) + (Object.values(semesterData[s1].elective) as number[]).reduce((a, b) => a + (b || 0), 0);
+                    const s2_total = (Object.values(semesterData[s2].mandatory) as number[]).reduce((a, b) => a + (b || 0), 0) + (Object.values(semesterData[s2].elective) as number[]).reduce((a, b) => a + (b || 0), 0);
                     return (
                         <React.Fragment key={year}>
                             <tr>
@@ -175,11 +175,11 @@ const StatisticsView: React.FC<{ courses: Course[] }> = ({ courses }) => {
                  {academicYears.map(year => {
                     const s1 = (year - 1) * 2 + 1;
                     const s2 = (year - 1) * 2 + 2;
-                    // FIX: Ensure reduce handles potentially undefined values by coercing to 0.
-                    const s1_ob = Object.values(semesterData[s1].mandatory).reduce((a,b)=>a+(b||0),0);
-                    const s1_el = Object.values(semesterData[s1].elective).reduce((a,b)=>a+(b||0),0);
-                    const s2_ob = Object.values(semesterData[s2].mandatory).reduce((a,b)=>a+(b||0),0);
-                    const s2_el = Object.values(semesterData[s2].elective).reduce((a,b)=>a+(b||0),0);
+                    // FIX: Ensure reduce handles potentially undefined values by coercing to 0. Also, cast Object.values to number[] to avoid 'unknown' type issues.
+                    const s1_ob = (Object.values(semesterData[s1].mandatory) as number[]).reduce((a,b)=>a+(b||0),0);
+                    const s1_el = (Object.values(semesterData[s1].elective) as number[]).reduce((a,b)=>a+(b||0),0);
+                    const s2_ob = (Object.values(semesterData[s2].mandatory) as number[]).reduce((a,b)=>a+(b||0),0);
+                    const s2_el = (Object.values(semesterData[s2].elective) as number[]).reduce((a,b)=>a+(b||0),0);
                     return (
                         <React.Fragment key={year}>
                         <tr>

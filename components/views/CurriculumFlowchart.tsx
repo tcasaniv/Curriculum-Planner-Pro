@@ -167,7 +167,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
         // 2. Placement
         const baseY = PADDING + HEADER_HEIGHT;
         const colIndex = semNum - 1;
-        const canDoStrategicLayout = isSpacedLayout && isLayoutOptimized && semNum > 1;
+        const canDoStrategicLayout = isSpacedLayout && semNum > 1;
 
         if (canDoStrategicLayout) {
             let nextAvailableRow = 0;
@@ -253,7 +253,8 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
     if (!autoLayoutData || !isDragActive) return autoLayoutData;
 
     const nodes = courses.map(course => {
-      const autoNodeForPos: { course: Course; x: number; y: number } | undefined = autoLayoutData.nodes.find(n => n.course.id === course.id);
+      // FIX: Explicitly cast `autoLayoutData.nodes` to a typed array. This prevents `find` from returning `unknown` and causing property access errors on `autoNodeForPos`.
+      const autoNodeForPos = (autoLayoutData.nodes as { course: Course; x: number; y: number }[]).find(n => n.course.id === course.id);
       const pos = nodePositions.get(course.id) ?? {x: autoNodeForPos?.x ?? 0, y: autoNodeForPos?.y ?? 0};
       return { course, ...pos };
     });
