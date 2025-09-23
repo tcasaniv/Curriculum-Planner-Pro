@@ -140,8 +140,8 @@ const App: React.FC = () => {
                     Esta herramienta le permite diseñar, visualizar y analizar planes de estudio.
                   </p>
                   <ul className="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2">
-                    <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo > Nuevo:</strong> Comienza un plan de estudios desde cero.</li>
-                    <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo > Importar JSON:</strong> Carga un plan de estudios desde un archivo.</li>
+                    <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo &gt; Nuevo:</strong> Comienza un plan de estudios desde cero.</li>
+                    <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo &gt; Importar JSON:</strong> Carga un plan de estudios desde un archivo.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">General:</strong> Muestra u oculta los paneles laterales y cambia el tema.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Vista (en Malla Curricular):</strong> Cambia las opciones de visualización del diagrama.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Panel Izquierdo:</strong> Añade, edita o elimina las asignaturas de tu plan.</li>

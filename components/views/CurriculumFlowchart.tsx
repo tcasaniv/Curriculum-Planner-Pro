@@ -253,8 +253,8 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
     if (!autoLayoutData || !isDragActive) return autoLayoutData;
 
     const nodes = courses.map(course => {
-      // FIX: Explicitly cast `autoLayoutData.nodes` to a typed array. This prevents `find` from returning `unknown` and causing property access errors on `autoNodeForPos`.
-      const autoNodeForPos = (autoLayoutData.nodes as { course: Course; x: number; y: number }[]).find(n => n.course.id === course.id);
+      // FIX: Add an explicit type annotation to `autoNodeForPos` to correct the type inference issue.
+      const autoNodeForPos: { course: Course; x: number; y: number } | undefined = (autoLayoutData.nodes as { course: Course; x: number; y: number }[]).find(n => n.course.id === course.id);
       const pos = nodePositions.get(course.id) ?? {x: autoNodeForPos?.x ?? 0, y: autoNodeForPos?.y ?? 0};
       return { course, ...pos };
     });
