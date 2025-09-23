@@ -1,0 +1,5 @@
+{
+  "name": "Curriculum Planner Pro",
+  "description": "Una herramienta avanzada para diseñar y visualizar planes de estudios universitarios. Crea, gestiona y analiza cursos con un diagrama de flujo interactivo del plan de estudios, un visor de programas y resúmenes estadísticos. Importa y exporta tus diseños de planes de estudios en formato JSON.",
+  "requestFramePermissions": []
+}
