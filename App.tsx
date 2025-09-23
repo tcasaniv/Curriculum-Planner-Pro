@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Course, Theme } from './types';
+import type { Course, Theme, ViewTab, HighlightMode, InteractionMode, ViewMode } from './types';
 import { CourseComponent, CourseType, EvaluationType, Modality } from './types';
 import { processImportedData } from './utils';
 import MenuBar from './components/MenuBar';
@@ -29,6 +29,18 @@ const App: React.FC = () => {
   // State for course form modal
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  
+  // State for RightPanel active tab
+  const [activeViewTab, setActiveViewTab] = useState<ViewTab>('flowchart');
+
+  // State lifted from CurriculumFlowchart
+  const [highlightMode, setHighlightMode] = useState<HighlightMode>('component');
+  const [isLayoutOptimized, setIsLayoutOptimized] = useState(true);
+  const [isSpacedLayout, setIsSpacedLayout] = useState(false);
+  const [isOrthogonalRouting, setIsOrthogonalRouting] = useState(false);
+  const [isLegendVisible, setIsLegendVisible] = useState(true);
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('navigate');
+  const [viewMode, setViewMode] = useState<ViewMode>('semester');
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -130,7 +142,8 @@ const App: React.FC = () => {
                   <ul className="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-2">
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo > Nuevo:</strong> Comienza un plan de estudios desde cero.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Archivo > Importar JSON:</strong> Carga un plan de estudios desde un archivo.</li>
-                    <li><strong className="text-indigo-600 dark:text-indigo-400">Ver:</strong> Muestra u oculta los paneles laterales y cambia el tema.</li>
+                    <li><strong className="text-indigo-600 dark:text-indigo-400">General:</strong> Muestra u oculta los paneles laterales y cambia el tema.</li>
+                    <li><strong className="text-indigo-600 dark:text-indigo-400">Vista (en Malla Curricular):</strong> Cambia las opciones de visualización del diagrama.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Panel Izquierdo:</strong> Añade, edita o elimina las asignaturas de tu plan.</li>
                     <li><strong className="text-indigo-600 dark:text-indigo-400">Panel Derecho:</strong> Visualiza la Malla Curricular, explora las Sumillas o revisa las Estadísticas.</li>
                   </ul>
@@ -145,7 +158,7 @@ const App: React.FC = () => {
         title: 'Acerca de Curriculum Planner Pro',
         content: (
             <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-                <p>Versión 1.1.0</p>
+                <p>Versión 1.2.0</p>
                 <p>Una herramienta avanzada para el diseño y visualización de planes de estudio universitarios.</p>
                 <p>&copy; 2024. Todos los derechos reservados.</p>
             </div>
@@ -203,6 +216,18 @@ const App: React.FC = () => {
   };
 
   const showQuickStart = !isLeftPanelVisible && !isRightPanelVisible;
+  
+  // Logic to disable layout options when a special mode is active
+  const isLayoutDisabled = interactionMode !== 'navigate' || viewMode !== 'semester';
+
+  useEffect(() => {
+      if (isLayoutDisabled) {
+          setIsLayoutOptimized(true);
+          setIsSpacedLayout(false);
+          setIsOrthogonalRouting(false);
+      }
+  }, [isLayoutDisabled]);
+
 
   return (
     <div className="h-screen w-screen flex flex-col font-sans bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
@@ -220,6 +245,23 @@ const App: React.FC = () => {
         onProjectNameChange={setProjectName}
         theme={theme}
         onThemeChange={setTheme}
+        
+        activeViewTab={activeViewTab}
+        highlightMode={highlightMode}
+        onHighlightModeChange={setHighlightMode}
+        isLayoutOptimized={isLayoutOptimized}
+        onIsLayoutOptimizedChange={setIsLayoutOptimized}
+        isSpacedLayout={isSpacedLayout}
+        onIsSpacedLayoutChange={setIsSpacedLayout}
+        isOrthogonalRouting={isOrthogonalRouting}
+        onIsOrthogonalRoutingChange={setIsOrthogonalRouting}
+        isLegendVisible={isLegendVisible}
+        onIsLegendVisibleChange={setIsLegendVisible}
+        interactionMode={interactionMode}
+        onInteractionModeChange={setInteractionMode}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        isLayoutDisabled={isLayoutDisabled}
       />
       <main className="flex-grow flex overflow-hidden">
         {showQuickStart ? (
@@ -238,7 +280,20 @@ const App: React.FC = () => {
             )}
             {isRightPanelVisible && (
               <section className={`transition-all duration-300 ${isLeftPanelVisible ? 'w-2/3' : 'w-full'}`}>
-                <RightPanel courses={courses} onEditCourse={handleEditCourse} />
+                <RightPanel 
+                    courses={courses} 
+                    onEditCourse={handleEditCourse}
+                    activeTab={activeViewTab}
+                    onTabChange={setActiveViewTab}
+                    
+                    highlightMode={highlightMode}
+                    isLayoutOptimized={isLayoutOptimized}
+                    isSpacedLayout={isSpacedLayout}
+                    isOrthogonalRouting={isOrthogonalRouting}
+                    isLegendVisible={isLegendVisible}
+                    interactionMode={interactionMode}
+                    viewMode={viewMode}
+                />
               </section>
             )}
           </>

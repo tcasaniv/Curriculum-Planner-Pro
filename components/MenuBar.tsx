@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Theme } from '../types';
+import type { Theme, ViewTab, HighlightMode, InteractionMode, ViewMode } from '../types';
+import { HIGHLIGHT_MODES } from '../constants';
 
 interface MenuBarProps {
   onNew: () => void;
@@ -15,7 +16,43 @@ interface MenuBarProps {
   onProjectNameChange: (name: string) => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
+  // Flowchart props
+  activeViewTab: ViewTab;
+  highlightMode: HighlightMode;
+  onHighlightModeChange: (mode: HighlightMode) => void;
+  isLayoutOptimized: boolean;
+  onIsLayoutOptimizedChange: (checked: boolean) => void;
+  isSpacedLayout: boolean;
+  onIsSpacedLayoutChange: (checked: boolean) => void;
+  isOrthogonalRouting: boolean;
+  onIsOrthogonalRoutingChange: (checked: boolean) => void;
+  isLegendVisible: boolean;
+  onIsLegendVisibleChange: (checked: boolean) => void;
+  interactionMode: InteractionMode;
+  onInteractionModeChange: (mode: InteractionMode) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  isLayoutDisabled: boolean;
 }
+
+const SubMenuItem: React.FC<{label: string, disabled?: boolean, children: React.ReactNode}> = ({ label, disabled, children }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="relative" onMouseEnter={() => !disabled && setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+            <a href="#" className={`flex justify-between items-center px-4 py-2 text-sm ${disabled ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`} onClick={e => e.preventDefault()}>
+                <span>{label}</span>
+                <span className="text-xs">▶</span>
+            </a>
+            {isOpen && (
+                 <div className="origin-top-left absolute left-full -top-1 mt-0 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1" role="menu">
+                        {children}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const MenuBar: React.FC<MenuBarProps> = ({ 
     onNew, onImport, onExport, 
@@ -23,7 +60,16 @@ const MenuBar: React.FC<MenuBarProps> = ({
     isLeftPanelVisible, isRightPanelVisible, 
     onShowGuide, onShowAbout,
     projectName, onProjectNameChange,
-    theme, onThemeChange
+    theme, onThemeChange,
+    activeViewTab,
+    highlightMode, onHighlightModeChange,
+    isLayoutOptimized, onIsLayoutOptimizedChange,
+    isSpacedLayout, onIsSpacedLayoutChange,
+    isOrthogonalRouting, onIsOrthogonalRoutingChange,
+    isLegendVisible, onIsLegendVisibleChange,
+    interactionMode, onInteractionModeChange,
+    viewMode, onViewModeChange,
+    isLayoutDisabled
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,14 +98,37 @@ const MenuBar: React.FC<MenuBarProps> = ({
       { label: 'Importar JSON...', action: handleImportClick },
       { label: 'Exportar JSON', action: onExport },
     ],
-    Ver: [
+    ...(activeViewTab === 'flowchart' && {
+      Vista: [
+        { type: 'submenu', label: 'Trazado Automático', disabled: isLayoutDisabled, items: [
+            { label: 'Optimizar Trazado', type: 'checkbox', active: isLayoutOptimized, action: () => onIsLayoutOptimizedChange(!isLayoutOptimized), disabled: isLayoutDisabled },
+            { label: 'Aumentar Espaciado', type: 'checkbox', active: isSpacedLayout, action: () => onIsSpacedLayoutChange(!isSpacedLayout), disabled: isLayoutDisabled },
+            { label: 'Evitar Cruces de Líneas', type: 'checkbox', active: isOrthogonalRouting, action: () => onIsOrthogonalRoutingChange(!isOrthogonalRouting), disabled: isLayoutDisabled },
+        ]},
+        { type: 'submenu', label: 'Modo de Visualización', items: [
+            { label: 'Semestral', type: 'radio', active: viewMode === 'semester', action: () => onViewModeChange('semester') },
+            { label: 'Flujo Horizontal', type: 'radio', active: viewMode === 'horizontal', action: () => onViewModeChange('horizontal') },
+        ]},
+        { type: 'submenu', label: 'Modo de Interacción', items: [
+            { label: 'Navegación', type: 'radio', active: interactionMode === 'navigate', action: () => onInteractionModeChange('navigate') },
+            { label: 'Mover en Grilla', type: 'radio', active: interactionMode === 'grid', action: () => onInteractionModeChange('grid') },
+            { label: 'Movimiento Libre', type: 'radio', active: interactionMode === 'free', action: () => onInteractionModeChange('free') },
+        ]},
+        { type: 'submenu', label: 'Resaltar por', items: HIGHLIGHT_MODES.map(mode => ({
+            label: mode.label, type: 'radio', active: highlightMode === mode.value, action: () => onHighlightModeChange(mode.value)
+        }))},
+        { type: 'divider' },
+        { label: 'Mostrar Leyenda', type: 'checkbox', active: isLegendVisible, action: () => onIsLegendVisibleChange(!isLegendVisible) },
+      ]
+    }),
+    General: [
       { label: `${isLeftPanelVisible ? 'Ocultar' : 'Mostrar'} Plan de Estudios`, action: onToggleLeftPanel },
       { label: `${isRightPanelVisible ? 'Ocultar' : 'Mostrar'} Vistas`, action: onToggleRightPanel },
       { type: 'divider' },
       { type: 'header', label: 'Tema' },
-      { label: 'Claro', action: () => onThemeChange('light'), active: theme === 'light' },
-      { label: 'Oscuro', action: () => onThemeChange('dark'), active: theme === 'dark' },
-      { label: 'Sistema', action: () => onThemeChange('system'), active: theme === 'system' },
+      { label: 'Claro', action: () => onThemeChange('light'), active: theme === 'light', type: 'radio' },
+      { label: 'Oscuro', action: () => onThemeChange('dark'), active: theme === 'dark', type: 'radio' },
+      { label: 'Sistema', action: () => onThemeChange('system'), active: theme === 'system', type: 'radio' },
     ],
     Ayuda: [
         { label: 'Guía Rápida', action: onShowGuide },
@@ -67,8 +136,29 @@ const MenuBar: React.FC<MenuBarProps> = ({
     ],
   };
 
+  const createActionHandler = (action?: () => void) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    if(action) action();
+    setOpenMenu(null);
+  };
+  
+  const renderSubMenuItems = (items: any[]) => {
+      return items.map(subItem => (
+        <a
+            key={subItem.label}
+            href="#"
+            onClick={createActionHandler(subItem.action)}
+            className={`block px-4 py-2 text-sm ${subItem.disabled ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+            role="menuitem"
+        >
+            <span className="inline-block w-4 mr-2">{subItem.active && (subItem.type === 'checkbox' ? '✓' : '•')}</span>
+            {subItem.label}
+        </a>
+      ));
+  }
+
   return (
-    <nav ref={menuRef} className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white flex items-center px-4 h-12 shadow-lg select-none z-20 border-b border-gray-200 dark:border-gray-700">
+    <nav ref={menuRef} className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white flex items-center px-4 h-12 shadow-lg select-none z-30 border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center mr-6">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3">
             <path d="M9 20L3 17V7L9 4L15 7L21 4V14L15 17L9 20Z" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
@@ -99,16 +189,23 @@ const MenuBar: React.FC<MenuBarProps> = ({
                   {items.map((item, index) => {
                     if (item.type === 'divider') return <hr key={index} className="my-1 border-gray-200 dark:border-gray-600" />;
                     if (item.type === 'header') return <div key={index} className="px-4 py-2 text-xs font-bold uppercase text-gray-500 dark:text-gray-400">{item.label}</div>;
+                    if (item.type === 'submenu') {
+                        return (
+                            <SubMenuItem key={item.label} label={item.label} disabled={item.disabled}>
+                                {renderSubMenuItems(item.items)}
+                            </SubMenuItem>
+                        );
+                    }
 
                     return (
                         <a
                         key={item.label}
                         href="#"
-                        onClick={(e) => { e.preventDefault(); item.action(); setOpenMenu(null); }}
+                        onClick={createActionHandler(item.action)}
                         className="block px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                         role="menuitem"
                         >
-                        <span className="inline-block w-4 mr-2">{item.active && '✓'}</span>
+                        <span className="inline-block w-4 mr-2">{item.active && (item.type === 'radio' ? '•' : '✓')}</span>
                         {item.label}
                         </a>
                     );

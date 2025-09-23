@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { Course, HighlightMode } from '../../types';
+import type { Course, HighlightMode, InteractionMode, ViewMode } from '../../types';
 import { 
     COMPONENT_COLORS, EVALUATION_TYPE_COLORS, COURSE_TYPE_COLORS,
     COMPONENT_NAMES, EVALUATION_TYPE_NAMES, COURSE_TYPE_NAMES 
@@ -7,25 +7,26 @@ import {
 import { romanize } from '../../utils';
 import CourseDetailsModal from '../common/CourseDetailsModal';
 import FlowchartLegend from './flowchart/FlowchartLegend';
-import FlowchartControls from './flowchart/FlowchartControls';
 import HorizontalFlow from './flowchart/HorizontalFlow';
 
 interface CurriculumFlowchartProps {
   courses: Course[];
   onEditCourse: (course: Course) => void;
+  highlightMode: HighlightMode;
+  isLayoutOptimized: boolean;
+  isSpacedLayout: boolean;
+  isOrthogonalRouting: boolean;
+  isLegendVisible: boolean;
+  interactionMode: InteractionMode;
+  viewMode: ViewMode;
 }
 
-const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEditCourse }) => {
-  const [highlightMode, setHighlightMode] = useState<HighlightMode>('component');
+const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ 
+    courses, onEditCourse,
+    highlightMode, isLayoutOptimized, isSpacedLayout, isOrthogonalRouting,
+    isLegendVisible, interactionMode, viewMode
+}) => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isLayoutOptimized, setIsLayoutOptimized] = useState(true);
-  const [isSpacedLayout, setIsSpacedLayout] = useState(false);
-  const [isGridSnapMode, setIsGridSnapMode] = useState(false);
-  const [isFreeDragMode, setIsFreeDragMode] = useState(false);
-  const [isOrthogonalRouting, setIsOrthogonalRouting] = useState(false);
-  const [isHorizontalFlowMode, setIsHorizontalFlowMode] = useState(false);
-  const [isLegendVisible, setIsLegendVisible] = useState(true);
-  
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
@@ -237,7 +238,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
   }, [courses, isLayoutOptimized, isSpacedLayout]);
 
   useEffect(() => {
-    const isDragActive = isFreeDragMode || isGridSnapMode;
+    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
     if (autoLayoutData && !isDragActive) {
         const newPositions = new Map<string, {x: number, y: number}>();
         autoLayoutData.nodes.forEach(node => {
@@ -245,14 +246,13 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
         });
         setNodePositions(newPositions);
     }
-  }, [autoLayoutData, isFreeDragMode, isGridSnapMode]);
+  }, [autoLayoutData, interactionMode]);
 
   const finalLayoutData = useMemo(() => {
-    const isDragActive = isFreeDragMode || isGridSnapMode;
+    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
     if (!autoLayoutData || !isDragActive) return autoLayoutData;
 
     const nodes = courses.map(course => {
-      // FIX: Add explicit type for autoNodeForPos to help compiler with type inference
       const autoNodeForPos: { course: Course; x: number; y: number } | undefined = autoLayoutData.nodes.find(n => n.course.id === course.id);
       const pos = nodePositions.get(course.id) ?? {x: autoNodeForPos?.x ?? 0, y: autoNodeForPos?.y ?? 0};
       return { course, ...pos };
@@ -280,10 +280,10 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
     }
 
     return { ...autoLayoutData, nodes, edges };
-  }, [autoLayoutData, isFreeDragMode, isGridSnapMode, nodePositions, courses]);
+  }, [autoLayoutData, interactionMode, nodePositions, courses]);
 
   const handleMouseDown = (event: React.MouseEvent, courseId: string) => {
-    const isDragActive = isFreeDragMode || isGridSnapMode;
+    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
     if (!isDragActive || !svgRef.current) return;
     event.preventDefault();
     const CTM = svgRef.current.getScreenCTM();
@@ -311,7 +311,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
     const newX = mouseSvgX - draggedNode.offsetX;
     const newY = mouseSvgY - draggedNode.offsetY;
 
-    if (isGridSnapMode) {
+    if (interactionMode === 'grid') {
         const { PADDING, HEADER_HEIGHT, NODE_HEIGHT, COL_WIDTH, NODE_WIDTH: nodeWidth, rowGap } = finalLayoutData;
         const rowHeight = NODE_HEIGHT + rowGap;
         
@@ -329,7 +329,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
             newPositions.set(draggedNode.id, { x: snappedX, y: snappedY });
             return newPositions;
         });
-    } else { // isFreeDragMode
+    } else { // free mode
         setNodePositions(prev => {
             const newPositions = new Map(prev);
             newPositions.set(draggedNode.id, { x: newX, y: newY });
@@ -342,30 +342,6 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
     setDraggedNode(null);
   };
   
-  const handleHorizontalFlowToggle = (checked: boolean) => {
-    setIsHorizontalFlowMode(checked);
-    if (checked) {
-      setIsFreeDragMode(false);
-      setIsGridSnapMode(false);
-    }
-  };
-  
-  const handleFreeDragToggle = (checked: boolean) => {
-    setIsFreeDragMode(checked);
-    if (checked) {
-      setIsGridSnapMode(false);
-      setIsHorizontalFlowMode(false);
-    }
-  };
-  
-  const handleGridSnapToggle = (checked: boolean) => {
-    setIsGridSnapMode(checked);
-    if (checked) {
-      setIsFreeDragMode(false);
-      setIsHorizontalFlowMode(false);
-    }
-  };
-
   const getHighlightColor = (course: Course) => {
     switch(highlightMode) {
       case 'component': return COMPONENT_COLORS[course.competencia];
@@ -413,7 +389,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
 
   const renderSemesterFlowchart = () => {
     if (!finalLayoutData) return <div className="text-center p-8 text-gray-400">Generando malla curricular...</div>;
-    const isDragActive = isFreeDragMode || isGridSnapMode;
+    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
     
     return (
         <svg
@@ -540,27 +516,9 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({ courses, onEd
 
   return (
     <div className="h-full flex flex-col">
-        <FlowchartControls 
-            isLayoutOptimized={isLayoutOptimized}
-            onLayoutOptimizedChange={setIsLayoutOptimized}
-            isSpacedLayout={isSpacedLayout}
-            onSpacedLayoutChange={setIsSpacedLayout}
-            isOrthogonalRouting={isOrthogonalRouting}
-            onOrthogonalRoutingChange={setIsOrthogonalRouting}
-            isGridSnapMode={isGridSnapMode}
-            onGridSnapModeChange={handleGridSnapToggle}
-            isFreeDragMode={isFreeDragMode}
-            onFreeDragModeChange={handleFreeDragToggle}
-            isHorizontalFlowMode={isHorizontalFlowMode}
-            onIsHorizontalFlowModeChange={handleHorizontalFlowToggle}
-            highlightMode={highlightMode}
-            onHighlightModeChange={setHighlightMode}
-            isLegendVisible={isLegendVisible}
-            onLegendVisibleChange={setIsLegendVisible}
-        />
         <div className="flex-grow flex overflow-hidden">
             <div className="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900 relative">
-                { isHorizontalFlowMode ? (
+                { viewMode === 'horizontal' ? (
                     <HorizontalFlow 
                         courses={courses}
                         onEditCourse={onEditCourse}

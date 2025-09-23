@@ -57,3 +57,7 @@ export type ViewTab = 'flowchart' | 'syllabus' | 'statistics' | 'courseTable';
 export type HighlightMode = 'component' | 'evaluation' | 'department' | 'type' | 'area';
 
 export type Theme = 'light' | 'dark' | 'system';
+
+export type InteractionMode = 'navigate' | 'grid' | 'free';
+
+export type ViewMode = 'semester' | 'horizontal';

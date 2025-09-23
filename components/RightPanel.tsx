@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { Course, ViewTab } from '../types';
+import React from 'react';
+import type { Course, ViewTab, HighlightMode, InteractionMode, ViewMode } from '../types';
 import CurriculumFlowchart from './views/CurriculumFlowchart';
 import SyllabusView from './views/SyllabusView';
 import StatisticsView from './views/StatisticsView';
@@ -8,15 +8,38 @@ import CourseTableView from './views/CourseTableView';
 interface RightPanelProps {
   courses: Course[];
   onEditCourse: (course: Course) => void;
+  activeTab: ViewTab;
+  onTabChange: (tab: ViewTab) => void;
+  // Flowchart props
+  highlightMode: HighlightMode;
+  isLayoutOptimized: boolean;
+  isSpacedLayout: boolean;
+  isOrthogonalRouting: boolean;
+  isLegendVisible: boolean;
+  interactionMode: InteractionMode;
+  viewMode: ViewMode;
 }
 
-const RightPanel: React.FC<RightPanelProps> = ({ courses, onEditCourse }) => {
-  const [activeTab, setActiveTab] = useState<ViewTab>('flowchart');
+const RightPanel: React.FC<RightPanelProps> = ({ 
+    courses, onEditCourse, activeTab, onTabChange,
+    highlightMode, isLayoutOptimized, isSpacedLayout, isOrthogonalRouting,
+    isLegendVisible, interactionMode, viewMode
+}) => {
 
   const renderContent = () => {
     switch (activeTab) {
       case 'flowchart':
-        return <CurriculumFlowchart courses={courses} onEditCourse={onEditCourse} />;
+        return <CurriculumFlowchart 
+                    courses={courses} 
+                    onEditCourse={onEditCourse}
+                    highlightMode={highlightMode}
+                    isLayoutOptimized={isLayoutOptimized}
+                    isSpacedLayout={isSpacedLayout}
+                    isOrthogonalRouting={isOrthogonalRouting}
+                    isLegendVisible={isLegendVisible}
+                    interactionMode={interactionMode}
+                    viewMode={viewMode}
+                />;
       case 'syllabus':
         return <SyllabusView courses={courses} />;
       case 'statistics':
@@ -42,7 +65,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ courses, onEditCourse }) => {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => onTabChange(tab.id)}
               className={`${
                 activeTab === tab.id
                   ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
