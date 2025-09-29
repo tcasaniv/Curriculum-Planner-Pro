@@ -156,12 +156,12 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
                 const avgYA = getAvgPrereqY(courseA);
                 const avgYB = getAvgPrereqY(courseB);
 
-                if (avgYA === avgYB) return courseA.id.localeCompare(courseB.id);
-                if (avgYA === Infinity && avgYB === Infinity) return courseA.id.localeCompare(courseB.id);
+                if (avgYA === avgYB) return courseA.casi.localeCompare(courseB.casi);
+                if (avgYA === Infinity && avgYB === Infinity) return courseA.casi.localeCompare(courseB.casi);
                 return avgYA - avgYB;
             });
         } else {
-            coursesToLayout.sort((a,b) => a.id.localeCompare(b.id));
+            coursesToLayout.sort((a,b) => a.casi.localeCompare(b.casi));
         }
 
         // 2. Placement
@@ -172,6 +172,7 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
         if (canDoStrategicLayout) {
             let nextAvailableRow = 0;
             const rowHeight = NODE_HEIGHT + STRATEGIC_ROW_GAP;
+            const rowOccupied = new Set<number>();
 
             coursesToLayout.forEach(course => {
                 const getIdealY = (c: Course): number => {
@@ -190,227 +191,239 @@ const CurriculumFlowchart: React.FC<CurriculumFlowchartProps> = ({
                 if (idealY !== -1) {
                     const idealNodeCenterY = idealY;
                     const idealNodeTopY = idealNodeCenterY - NODE_HEIGHT / 2;
-                    const idealRowCandidate = Math.round((idealNodeTopY - baseY) / rowHeight);
-                    finalRowIndex = Math.max(nextAvailableRow, idealRowCandidate);
-                } else {
-                    finalRowIndex = nextAvailableRow;
-                }
+                    const idealRowCandidate = Math.max(0, Math.round((idealNodeTopY - baseY) / rowHeight));
+                    
+                    let targetRow = idealRowCandidate;
+                    // Simple collision avoidance: find next free slot downwards
+                    while(rowOccupied.has(targetRow)) {
+                        targetRow++;
+                    }
+                    finalRowIndex = targetRow;
 
-                const y = baseY + finalRowIndex * rowHeight;
-                nodes.set(course.id, { course, x: PADDING + colIndex * COL_WIDTH, y });
-                nextAvailableRow = finalRowIndex + 1;
+                } else {
+                    // Place at the next available row if no prereqs
+                    let targetRow = nextAvailableRow;
+                     while(rowOccupied.has(targetRow)) {
+                        targetRow++;
+                    }
+                    finalRowIndex = targetRow;
+                    nextAvailableRow = finalRowIndex + 1;
+                }
+                
+                rowOccupied.add(finalRowIndex);
+
+                nodes.set(course.id, {
+                    course,
+                    x: PADDING + colIndex * COL_WIDTH,
+                    y: baseY + finalRowIndex * rowHeight,
+                });
             });
-        } else {
-            // Fallback to original logic (compact or simple wide spacing)
-            const rowHeight = NODE_HEIGHT + rowGap;
-            coursesToLayout.forEach((course, rowIndex) => {
-                const y = baseY + rowIndex * rowHeight;
-                nodes.set(course.id, { course, x: PADDING + colIndex * COL_WIDTH, y });
+        } else { // non-strategic layout
+            coursesToLayout.forEach((course, index) => {
+                nodes.set(course.id, {
+                    course,
+                    x: PADDING + colIndex * COL_WIDTH,
+                    y: baseY + index * (NODE_HEIGHT + rowGap),
+                });
             });
         }
     });
+
+    const allNodes = Array.from(nodes.values());
+    const nodeMap = new Map(allNodes.map(n => [n.course.id, n]));
     
-    // Calculate final dimensions
-    const allNodeYs = Array.from(nodes.values()).map(n => n.y);
-    const maxY = allNodeYs.length > 0 ? Math.max(...allNodeYs) : 0;
-    const totalHeight = maxY + NODE_HEIGHT + PADDING * 2;
-    const totalWidth = numSemesters * COL_WIDTH - COL_GAP + PADDING * 2;
+    const semesterMaxY = semesterNumbers.map(semNum => {
+        const semesterNodes = allNodes.filter(n => n.course.semester === semNum);
+        return semesterNodes.length > 0 ? Math.max(...semesterNodes.map(n => n.y)) : 0;
+    });
 
-    const edges = [];
-    for (const node of nodes.values()) {
-        for (const prereqId of node.course.prerequisites) {
-            const sourceNode = nodes.get(prereqId);
-            if (sourceNode) {
-                edges.push({
-                    id: `${prereqId}-${node.course.id}`,
-                    sourceId: prereqId,
-                    targetId: node.course.id,
-                    x1: sourceNode.x + NODE_WIDTH,
-                    y1: sourceNode.y + NODE_HEIGHT / 2,
-                    x2: node.x,
-                    y2: node.y + NODE_HEIGHT / 2,
-                });
-            }
-        }
-    }
+    const totalHeight = PADDING * 2 + HEADER_HEIGHT + Math.max(0, ...semesterMaxY);
+    const totalWidth = PADDING * 2 + numSemesters * COL_WIDTH - COL_GAP;
 
-    return { nodes: Array.from(nodes.values()), edges, width: totalWidth, height: totalHeight, numSemesters, COL_WIDTH, PADDING, HEADER_HEIGHT, NODE_WIDTH, NODE_HEIGHT, COL_GAP, semesterCredits, rowGap };
+    const edges = courses.flatMap(course => 
+        course.prerequisites.map(prereqId => {
+            const source = nodeMap.get(prereqId);
+            const target = nodeMap.get(course.id);
+            if (!source || !target) return null;
+            return {
+                id: `${prereqId}-${course.id}`,
+                sourceId: prereqId,
+                targetId: course.id,
+                x1: source.x + NODE_WIDTH,
+                y1: source.y + NODE_HEIGHT / 2,
+                x2: target.x,
+                y2: target.y + NODE_HEIGHT / 2,
+            };
+        }).filter((e): e is NonNullable<typeof e> => e !== null)
+    );
+
+    return { nodes: allNodes, edges, width: Math.max(600, totalWidth), height: Math.max(400, totalHeight), numSemesters, COL_WIDTH, PADDING, HEADER_HEIGHT, NODE_WIDTH, NODE_HEIGHT, COL_GAP, semesterCredits };
   }, [courses, isLayoutOptimized, isSpacedLayout]);
 
-  useEffect(() => {
-    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
-    if (autoLayoutData && !isDragActive) {
-        const newPositions = new Map<string, {x: number, y: number}>();
-        autoLayoutData.nodes.forEach(node => {
-            newPositions.set(node.course.id, { x: node.x, y: node.y });
-        });
-        setNodePositions(newPositions);
-    }
-  }, [autoLayoutData, interactionMode]);
-
-  const finalLayoutData = useMemo(() => {
-    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
-    if (!autoLayoutData || !isDragActive) return autoLayoutData;
-
-    const nodes = courses.map(course => {
-      // FIX: Add an explicit type annotation to `autoNodeForPos` to correct the type inference issue.
-      const autoNodeForPos: { course: Course; x: number; y: number } | undefined = (autoLayoutData.nodes as { course: Course; x: number; y: number }[]).find(n => n.course.id === course.id);
-      const pos = nodePositions.get(course.id) ?? {x: autoNodeForPos?.x ?? 0, y: autoNodeForPos?.y ?? 0};
-      return { course, ...pos };
-    });
-
-    const nodeMap = new Map(nodes.map(n => [n.course.id, n]));
-    
-    const edges = [];
-    for (const node of nodes) {
-        for (const prereqId of node.course.prerequisites) {
-            const sourceNode = nodeMap.get(prereqId);
-            const targetNode = node;
-            if (sourceNode && targetNode) {
-                edges.push({
-                    id: `${prereqId}-${node.course.id}`,
-                    sourceId: prereqId,
-                    targetId: node.course.id,
-                    x1: sourceNode.x + autoLayoutData.NODE_WIDTH,
-                    y1: sourceNode.y + autoLayoutData.NODE_HEIGHT / 2,
-                    x2: targetNode.x,
-                    y2: targetNode.y + autoLayoutData.NODE_HEIGHT / 2,
-                });
-            }
+    useEffect(() => {
+        if (autoLayoutData) {
+            const initialPositions = new Map(autoLayoutData.nodes.map(n => [n.course.id, {x: n.x, y: n.y}]));
+            setNodePositions(initialPositions);
         }
-    }
+    }, [autoLayoutData]);
 
-    return { ...autoLayoutData, nodes, edges };
-  }, [autoLayoutData, interactionMode, nodePositions, courses]);
+    const finalLayoutData = useMemo(() => {
+        if (!autoLayoutData) return null;
 
-  const handleMouseDown = (event: React.MouseEvent, courseId: string) => {
-    const isDragActive = interactionMode === 'free' || interactionMode === 'grid';
-    if (!isDragActive || !svgRef.current) return;
-    event.preventDefault();
-    const CTM = svgRef.current.getScreenCTM();
-    if (!CTM) return;
-    const mouseSvgX = (event.clientX - CTM.e) / CTM.a;
-    const mouseSvgY = (event.clientY - CTM.f) / CTM.d;
+        const nodes = autoLayoutData.nodes.map(node => ({
+            ...node,
+            ...nodePositions.get(node.course.id)
+        }));
 
-    const nodePos = nodePositions.get(courseId);
-    if (!nodePos) return;
+        const nodeMap = new Map(nodes.map(n => [n.course.id, n]));
 
-    setDraggedNode({ 
-        id: courseId, 
-        offsetX: mouseSvgX - nodePos.x, 
-        offsetY: mouseSvgY - nodePos.y 
-    });
-  };
+        const edges = courses.flatMap(course => 
+            course.prerequisites.map(prereqId => {
+                const source = nodeMap.get(prereqId);
+                const target = nodeMap.get(course.id);
+                if (!source || !target) return null;
+                return {
+                    id: `${prereqId}-${course.id}`,
+                    sourceId: prereqId,
+                    targetId: course.id,
+                    x1: source.x + autoLayoutData.NODE_WIDTH,
+                    y1: source.y + autoLayoutData.NODE_HEIGHT / 2,
+                    x2: target.x,
+                    y2: target.y + autoLayoutData.NODE_HEIGHT / 2,
+                };
+            }).filter((e): e is NonNullable<typeof e> => e !== null)
+        );
 
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!draggedNode || !svgRef.current || !finalLayoutData) return;
-    const CTM = svgRef.current.getScreenCTM();
-    if (!CTM) return;
-    const mouseSvgX = (event.clientX - CTM.e) / CTM.a;
-    const mouseSvgY = (event.clientY - CTM.f) / CTM.d;
+        return { ...autoLayoutData, nodes, edges };
+    }, [autoLayoutData, nodePositions, courses]);
+
+    const handleMouseDown = (event: React.MouseEvent, courseId: string) => {
+        if (interactionMode === 'navigate' || !svgRef.current) return;
+        event.preventDefault();
+        const svgPoint = svgRef.current.createSVGPoint();
+        svgPoint.x = event.clientX;
+        svgPoint.y = event.clientY;
+        const CTM = svgRef.current.getScreenCTM()?.inverse();
+        if (!CTM) return;
+        const { x, y } = svgPoint.matrixTransform(CTM);
+
+        const currentPos = nodePositions.get(courseId);
+        if (currentPos) {
+            setDraggedNode({ id: courseId, offsetX: x - currentPos.x, offsetY: y - currentPos.y });
+        }
+    };
     
-    const newX = mouseSvgX - draggedNode.offsetX;
-    const newY = mouseSvgY - draggedNode.offsetY;
+    const handleMouseMove = (event: React.MouseEvent) => {
+        if (!draggedNode || !svgRef.current) return;
+        event.preventDefault();
 
-    if (interactionMode === 'grid') {
-        const { PADDING, HEADER_HEIGHT, NODE_HEIGHT, COL_WIDTH, NODE_WIDTH: nodeWidth, rowGap } = finalLayoutData;
-        const rowHeight = NODE_HEIGHT + rowGap;
+        const svgPoint = svgRef.current.createSVGPoint();
+        svgPoint.x = event.clientX;
+        svgPoint.y = event.clientY;
+        const CTM = svgRef.current.getScreenCTM()?.inverse();
+        if (!CTM) return;
+        const { x, y } = svgPoint.matrixTransform(CTM);
         
-        const nodeCenterX = newX + nodeWidth / 2;
-        const nodeCenterY = newY + NODE_HEIGHT / 2;
+        let newX = x - draggedNode.offsetX;
+        let newY = y - draggedNode.offsetY;
 
-        const colIndex = Math.max(0, Math.round((nodeCenterX - PADDING - nodeWidth / 2) / COL_WIDTH));
-        const rowIndex = Math.max(0, Math.round((nodeCenterY - PADDING - HEADER_HEIGHT - NODE_HEIGHT / 2) / rowHeight));
+        if (interactionMode === 'grid') {
+            const gridSize = 20;
+            newX = Math.round(newX / gridSize) * gridSize;
+            newY = Math.round(newY / gridSize) * gridSize;
+        }
 
-        const snappedX = PADDING + colIndex * COL_WIDTH;
-        const snappedY = PADDING + HEADER_HEIGHT + rowIndex * rowHeight;
-        
-        setNodePositions(prev => {
-            const newPositions = new Map(prev);
-            newPositions.set(draggedNode.id, { x: snappedX, y: snappedY });
-            return newPositions;
-        });
-    } else { // free mode
-        setNodePositions(prev => {
-            const newPositions = new Map(prev);
-            newPositions.set(draggedNode.id, { x: newX, y: newY });
-            return newPositions;
-        });
-    }
-  };
+        setNodePositions(prev => new Map(prev).set(draggedNode.id, { x: newX, y: newY }));
+    };
 
-  const handleMouseUp = () => {
-    setDraggedNode(null);
-  };
-  
-  const getHighlightColor = (course: Course) => {
-    switch(highlightMode) {
-      case 'component': return COMPONENT_COLORS[course.competencia];
-      case 'evaluation': return EVALUATION_TYPE_COLORS[course.tipoMedicion];
-      case 'type': return COURSE_TYPE_COLORS[course.tipoAsignatura];
-      case 'department': return departmentColors[course.academicDepartments[0]] || 'fill-gray-600';
-      case 'area': return areaColors[course.areaAcademica] || 'fill-gray-600';
-      default: return 'fill-gray-600';
-    }
-  };
-  
-  if (!courses.length) return <div className="text-center p-8 text-gray-500 dark:text-gray-400">No hay asignaturas para mostrar. Comience añadiendo una o importando un plan.</div>;
+    const handleMouseUp = () => {
+        setDraggedNode(null);
+    };
 
-  return (
-    <div className="h-full flex flex-col">
-        <div className="flex-grow flex overflow-hidden">
-            <div className="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900 relative">
-                { viewMode === 'horizontal' ? (
-                    <HorizontalFlow 
-                        courses={courses} 
+    if (viewMode === 'horizontal') {
+        return (
+            <div className="h-full flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+                <div className="flex-grow overflow-auto relative">
+                   <HorizontalFlow 
+                        courses={courses}
                         onEditCourse={onEditCourse}
                         highlightMode={highlightMode}
                         departmentColors={departmentColors}
                         areaColors={areaColors}
                         hiddenCategories={hiddenCategories}
                         getCategoryNameForCourse={getCategoryNameForCourse}
-                    />
-                ) : !finalLayoutData ? (
-                    <div className="text-center p-8 text-gray-400">Generando malla curricular...</div>
-                ) : (
-                    <SemesterFlow
-                        finalLayoutData={finalLayoutData}
-                        interactionMode={interactionMode}
-                        draggedNode={draggedNode}
-                        isOrthogonalRouting={isOrthogonalRouting}
-                        hoveredCourseId={hoveredCourseId}
-                        relatedCourseIds={relatedCourseIds}
-                        hiddenCategories={hiddenCategories}
-                        hoveredCategory={hoveredCategory}
-                        getHighlightColor={getHighlightColor}
-                        getCategoryNameForCourse={getCategoryNameForCourse}
-                        svgRef={svgRef}
-                        handleMouseMove={handleMouseMove}
-                        handleMouseUp={handleMouseUp}
-                        onCourseClick={setSelectedCourse}
-                        onCourseMouseDown={handleMouseDown}
-                        onCourseMouseEnter={setHoveredCourseId}
-                        onCourseMouseLeave={() => setHoveredCourseId(null)}
-                    />
-                )}
+                   />
+                </div>
+                {isLegendVisible &&
+                    <div className="absolute top-4 left-4 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 rounded-lg shadow-lg w-64 max-h-[80vh] overflow-y-auto">
+                        <FlowchartLegend
+                            highlightMode={highlightMode}
+                            courses={courses}
+                            departmentColors={departmentColors}
+                            areaColors={areaColors}
+                            onHoverCategory={setHoveredCategory}
+                            onToggleCategory={handleToggleCategory}
+                            hiddenCategories={hiddenCategories}
+                        />
+                    </div>
+                }
+                <CourseDetailsModal course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={courses} onEdit={onEditCourse} />
+            </div>
+        )
+    }
+
+  if (!finalLayoutData) {
+      return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Cargando malla curricular...</div>;
+  }
+    
+  return (
+        <div className="h-full flex overflow-hidden bg-gray-50 dark:bg-gray-900">
+            <div className="flex-grow overflow-auto relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+                <SemesterFlow
+                    finalLayoutData={finalLayoutData}
+                    interactionMode={interactionMode}
+                    draggedNode={draggedNode}
+                    isOrthogonalRouting={isOrthogonalRouting}
+                    hoveredCourseId={hoveredCourseId}
+                    relatedCourseIds={relatedCourseIds}
+                    hiddenCategories={hiddenCategories}
+                    hoveredCategory={hoveredCategory}
+                    getHighlightColor={(course) => {
+                        switch(highlightMode) {
+                            case 'component': return COMPONENT_COLORS[course.competencia];
+                            case 'evaluation': return EVALUATION_TYPE_COLORS[course.tipoMedicion];
+                            case 'type': return COURSE_TYPE_COLORS[course.tipoAsignatura];
+                            case 'department': return departmentColors[course.academicDepartments[0]] || 'fill-gray-600';
+                            case 'area': return areaColors[course.areaAcademica] || 'fill-gray-600';
+                            default: return 'fill-gray-600';
+                        }
+                    }}
+                    getCategoryNameForCourse={getCategoryNameForCourse}
+                    svgRef={svgRef}
+                    handleMouseMove={handleMouseMove}
+                    handleMouseUp={handleMouseUp}
+                    onCourseClick={setSelectedCourse}
+                    onCourseMouseDown={handleMouseDown}
+                    onCourseMouseEnter={setHoveredCourseId}
+                    onCourseMouseLeave={() => setHoveredCourseId(null)}
+                />
             </div>
             {isLegendVisible && (
-             <aside className="w-72 bg-white dark:bg-gray-800 p-4 overflow-y-auto border-l border-gray-200 dark:border-gray-700 shrink-0">
-                <FlowchartLegend
-                    highlightMode={highlightMode}
-                    courses={courses}
-                    departmentColors={departmentColors}
-                    areaColors={areaColors}
-                    onHoverCategory={setHoveredCategory}
-                    onToggleCategory={handleToggleCategory}
-                    hiddenCategories={hiddenCategories}
-                />
-            </aside>
+                <aside className="w-64 p-4 border-l border-gray-200 dark:border-gray-700 overflow-y-auto shrink-0 bg-white dark:bg-gray-800 shadow-lg">
+                    <FlowchartLegend
+                        highlightMode={highlightMode}
+                        courses={courses}
+                        departmentColors={departmentColors}
+                        areaColors={areaColors}
+                        onHoverCategory={setHoveredCategory}
+                        onToggleCategory={handleToggleCategory}
+                        hiddenCategories={hiddenCategories}
+                    />
+                </aside>
             )}
+            <CourseDetailsModal course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={courses} onEdit={onEditCourse} />
         </div>
-      <CourseDetailsModal course={selectedCourse} onClose={() => setSelectedCourse(null)} allCourses={courses} onEdit={onEditCourse} />
-    </div>
-  );
+    );
 };
 
 export default CurriculumFlowchart;

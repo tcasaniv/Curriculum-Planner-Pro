@@ -29,6 +29,7 @@ export enum Modality {
 
 export interface Course {
   id: string;
+  casi: string;
   name: string;
   theoryHours: number;
   practiceHours: number;

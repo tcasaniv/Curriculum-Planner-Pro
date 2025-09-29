@@ -1,3 +1,4 @@
+
 import { Course, CourseComponent, CourseType, EvaluationType, Modality } from './types';
 
 export const romanize = (num: number): string => {
@@ -29,6 +30,7 @@ export const processImportedData = (data: any[]): Course[] => {
 
         return {
             id: item.id,
+            casi: item.casi || item.id,
             name: item.name,
             theoryHours: item.theoryHours || 0,
             practiceHours: item.practiceHours || 0,

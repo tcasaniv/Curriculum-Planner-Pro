@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Course, Theme, ViewTab, HighlightMode, InteractionMode, ViewMode } from './types';
 import { CourseComponent, CourseType, EvaluationType, Modality } from './types';
@@ -109,6 +111,7 @@ const App: React.FC = () => {
           });
         }
       };
+      // FIX: The correct method is `readAsText`, not `readText`.
       reader.readAsText(file);
     }
     event.target.value = ''; // Reset input
@@ -167,7 +170,38 @@ const App: React.FC = () => {
   };
 
   // --- Course CRUD Handlers ---
-  const handleSaveCourse = (course: Course) => {
+  const handleSaveCourse = (courseData: Course) => {
+    const isNewCourse = !courseData.id;
+    
+    if (isNewCourse && !courseData.casi?.trim()) {
+        setModal({
+            type: 'info',
+            title: 'Error de Validación',
+            content: 'El campo CASI no puede estar vacío para una nueva asignatura.',
+        });
+        return;
+    }
+
+    const course = isNewCourse ? { ...courseData, id: courseData.casi } : courseData;
+
+    if (!course.casi?.trim()) {
+        setModal({
+            type: 'info',
+            title: 'Error de Validación',
+            content: 'El campo CASI no puede estar vacío.',
+        });
+        return;
+    }
+    const isCasiDuplicate = courses.some(c => c.casi.toLowerCase() === course.casi.toLowerCase() && c.id !== course.id);
+    if (isCasiDuplicate) {
+        setModal({
+            type: 'info',
+            title: 'Error de Validación',
+            content: `El CASI "${course.casi}" ya está en uso. Por favor, elija uno diferente.`,
+        });
+        return;
+    }
+
     setCourses(prev => {
         const index = prev.findIndex(c => c.id === course.id);
         if (index > -1) {
@@ -175,6 +209,14 @@ const App: React.FC = () => {
             newCourses[index] = course;
             return newCourses;
         } else {
+            if (prev.some(c => c.id === course.id)) {
+                setModal({
+                    type: 'info',
+                    title: 'Error de Validación',
+                    content: `El CASI "${course.id}" ya existe como un ID de curso. El ID del curso es el mismo que el CASI al momento de crearlo. Por favor, elija uno diferente.`,
+                });
+                return prev;
+             }
             return [...prev, course];
         }
     });
@@ -184,7 +226,7 @@ const App: React.FC = () => {
 
   const handleAddCourse = () => {
     setEditingCourse({
-        id: '', name: '', credits: 0, semester: 1, academicDepartments: [], competencia: CourseComponent.Specific,
+        id: '', casi: '', name: '', credits: 0, semester: 1, academicDepartments: [], competencia: CourseComponent.Specific,
         prerequisites: [], sumilla: '', tipoAsignatura: CourseType.Mandatory, tipoMedicion: EvaluationType.Regular,
         areaAcademica: '', contenidoTematico: '', bibliografia: '', labHours: 0, practiceHours: 0, prerequisiteCredits: 0,
         seminarHours: 0, theoryHours: 0, theoryPracticeHours: 0, graduateAttributes: [], evidence: '', modality: Modality.Presential

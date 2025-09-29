@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Course } from '../../types';
 import { COMPONENT_NAMES, EVALUATION_TYPE_NAMES, COURSE_TYPE_NAMES } from '../../constants';
@@ -7,7 +8,7 @@ type SortKey = keyof Course | 'totalHours' | 'prerequisitesCount';
 
 const CourseTableView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' }>({ key: 'id', direction: 'ascending' });
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' }>({ key: 'casi', direction: 'ascending' });
     const [filters, setFilters] = useState<Record<string, Set<string>>>({});
     
     const [openFilterDropdown, setOpenFilterDropdown] = useState<SortKey | null>(null);
@@ -16,7 +17,7 @@ const CourseTableView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     const filterDropdownRef = useRef<HTMLDivElement>(null);
 
     const columns: { key: SortKey; header: string; }[] = [
-        { key: 'id', header: 'ID' },
+        { key: 'casi', header: 'CASI' },
         { key: 'name', header: 'Nombre' },
         { key: 'semester', header: 'Sem' },
         { key: 'credits', header: 'Cred' },

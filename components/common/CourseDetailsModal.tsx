@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Course } from '../../types';
 import { 
@@ -15,13 +16,13 @@ const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void,
     const prerequisites = course.prerequisites
         .map(prereqId => {
             const prereqCourse = allCourses.find(c => c.id === prereqId);
-            return prereqCourse ? { id: prereqCourse.id, name: prereqCourse.name } : null;
+            return prereqCourse ? { id: prereqCourse.id, name: prereqCourse.name, casi: prereqCourse.casi } : null;
         })
-        .filter((c): c is { id: string; name: string } => c !== null);
+        .filter((c): c is { id: string; name: string, casi: string } => c !== null);
 
     const dependentCourses = allCourses
         .filter(c => c.prerequisites.includes(course.id))
-        .map(c => ({ id: c.id, name: c.name }));
+        .map(c => ({ id: c.id, name: c.name, casi: c.casi }));
 
     const totalHours = course.theoryHours + course.practiceHours + course.labHours + course.seminarHours + course.theoryPracticeHours;
 
@@ -31,7 +32,7 @@ const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void,
                 <div className="flex justify-between items-start">
                     <div>
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{course.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">ID: {course.id} | Semestre: {course.semester} | Créditos: {course.credits}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">CASI: {course.casi} | Semestre: {course.semester} | Créditos: {course.credits}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-800 dark:hover:text-white text-3xl leading-none">&times;</button>
                 </div>
@@ -52,7 +53,7 @@ const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void,
                                 {prerequisites.length > 0 ? (
                                     <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
                                         {prerequisites.map(prereq => (
-                                            <li key={prereq.id}>{`${prereq.id} - ${prereq.name}`}</li>
+                                            <li key={prereq.id}>{`${prereq.casi} - ${prereq.name}`}</li>
                                         ))}
                                     </ul>
                                 ) : (
@@ -64,7 +65,7 @@ const CourseDetailsModal: React.FC<{ course: Course | null; onClose: () => void,
                                 {dependentCourses.length > 0 ? (
                                     <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
                                         {dependentCourses.map(dep => (
-                                            <li key={dep.id}>{`${dep.id} - ${dep.name}`}</li>
+                                            <li key={dep.id}>{`${dep.casi} - ${dep.name}`}</li>
                                         ))}
                                     </ul>
                                 ) : (

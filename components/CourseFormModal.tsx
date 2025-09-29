@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Course } from '../types';
 import { CourseComponent, CourseType, EvaluationType, Modality } from '../types';
@@ -152,7 +153,7 @@ const CourseFormModal: React.FC<CourseFormModalProps> = ({ isOpen, onClose, onSa
                 </div>
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <FormInput label="ID" name="id" value={formData.id} onChange={handleChange} className="md:col-span-1" />
+                        <FormInput label="CASI" name="casi" value={formData.casi} onChange={handleChange} className="md:col-span-1" placeholder="ej. CI1101" />
                         <FormInput label="Nombre" name="name" value={formData.name} onChange={handleChange} className="md:col-span-3" />
                         <FormInput label="Créditos" name="credits" type="number" value={formData.credits} onChange={handleChange} />
                         <FormInput label="Semestre" name="semester" type="number" value={formData.semester} onChange={handleChange} />

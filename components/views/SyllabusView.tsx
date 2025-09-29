@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Course } from '../../types';
 import { GRADUATE_ATTRIBUTES, EVALUATION_TYPE_NAMES, COURSE_TYPE_NAMES, ACADEMIC_AREAS, COMPONENT_TO_ACADEMIC_AREA, MODALITY_NAMES } from '../../constants';
@@ -5,7 +6,7 @@ import MarkdownRenderer from '../common/MarkdownRenderer';
 
 const SyllabusView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     const [selectedCourseId, setSelectedCourseId] = useState<string>(courses[0]?.id || '');
-    const sortedCourses = useMemo(() => [...courses].sort((a, b) => a.id.localeCompare(b.id)), [courses]);
+    const sortedCourses = useMemo(() => [...courses].sort((a, b) => (a.casi || a.id).localeCompare(b.casi || b.id)), [courses]);
 
     useEffect(() => {
         if (!selectedCourseId && sortedCourses.length > 0) {
@@ -42,7 +43,7 @@ const SyllabusView: React.FC<{ courses: Course[] }> = ({ courses }) => {
             <div className="p-6 h-full overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <select onChange={e => setSelectedCourseId(e.target.value)} className="w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md mb-6" defaultValue="">
                     <option value="" disabled>Seleccione una asignatura...</option>
-                    {sortedCourses.map(c => <option key={c.id} value={c.id}>{`${c.id} - ${c.name}`}</option>)}
+                    {sortedCourses.map(c => <option key={c.id} value={c.id}>{`${c.casi} - ${c.name}`}</option>)}
                 </select>
                 <div className="text-center p-8 text-gray-500 dark:text-gray-400">Por favor, seleccione una asignatura para ver sus detalles.</div>
             </div>
@@ -77,7 +78,7 @@ const SyllabusView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     const prerequisitesNames = selectedCourse.prerequisites
         .map(prereqId => courses.find(c => c.id === prereqId))
         .filter(Boolean)
-        .map(c => `${c!.id} - ${c!.name}`)
+        .map(c => `${c!.casi} - ${c!.name}`)
         .join('; ') || 'Ninguno';
         
     const areaCurricular = COMPONENT_TO_ACADEMIC_AREA[selectedCourse.competencia];
@@ -85,13 +86,13 @@ const SyllabusView: React.FC<{ courses: Course[] }> = ({ courses }) => {
     return (
         <div className="p-6 h-full overflow-y-auto bg-gray-50 dark:bg-gray-900">
             <select value={selectedCourseId} onChange={e => setSelectedCourseId(e.target.value)} className="w-full p-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md mb-6">
-                {sortedCourses.map(c => <option key={c.id} value={c.id}>{`${c.id} - ${c.name}`}</option>)}
+                {sortedCourses.map(c => <option key={c.id} value={c.id}>{`${c.casi} - ${c.name}`}</option>)}
             </select>
 
             <div className="space-y-6">
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <h3 className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-sm font-bold text-gray-900 dark:text-white tracking-wider uppercase">
-                        {`${selectedCourse.id} - ${selectedCourse.name}`}
+                        {`${selectedCourse.casi} - ${selectedCourse.name}`}
                     </h3>
                     <table className="w-full text-sm text-left table-fixed">
                         <colgroup>

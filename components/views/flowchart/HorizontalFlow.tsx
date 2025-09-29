@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Course, HighlightMode } from '../../../types';
 import { 
@@ -263,7 +264,7 @@ const HorizontalFlow: React.FC<HorizontalFlowProps> = ({
                                 <foreignObject width={layoutData.NODE_WIDTH} height={layoutData.NODE_HEIGHT} requiredExtensions="http://www.w3.org/1999/xhtml">
                                     <div className="w-full h-full p-2 flex flex-col justify-center items-center text-center text-white select-none">
                                         <p className="text-xs font-bold leading-tight">{course.name}</p>
-                                        <p className="text-[10px] text-gray-200 mt-1">{course.id} &bull; {course.credits}cr</p>
+                                        <p className="text-[10px] text-gray-200 mt-1">{course.casi} &bull; {course.credits}cr</p>
                                     </div>
                                 </foreignObject>
                             </g>

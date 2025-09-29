@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Course } from '../types';
 import { TrashIcon, FilterIcon, SortIcon } from './common/Icons';
 
-type SortKey = 'id' | 'name' | 'semester' | 'credits';
+type SortKey = 'casi' | 'name' | 'semester' | 'credits';
 
 interface LeftPanelProps {
   courses: Course[];
@@ -24,7 +25,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
   
   // #region Table Logic
   const columns: { key: SortKey; header: string; }[] = [
-    { key: 'id', header: 'ID' },
+    { key: 'casi', header: 'CASI' },
     { key: 'name', header: 'Nombre' },
     { key: 'semester', header: 'Sem' },
     { key: 'credits', header: 'Cred' },
@@ -220,7 +221,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({ courses, onAddCourse, onEditCours
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {filteredAndSortedCourses.map(course => (
               <tr key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{course.id}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{course.casi}</td>
                 <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-white">{course.name}</td>
                 <td className="px-2 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{course.semester}</td>
                 <td className="px-2 py-3 whitespace-nowrap text-gray-600 dark:text-gray-300">{course.credits}</td>
