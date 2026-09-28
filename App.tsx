@@ -161,9 +161,10 @@ const App: React.FC = () => {
         title: 'Acerca de Curriculum Planner Pro',
         content: (
             <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
-                <p>Versión 1.2.0</p>
+                <p>Versión 1.2.1</p>
                 <p>Una herramienta avanzada para el diseño y visualización de planes de estudio universitarios.</p>
-                <p>&copy; 2024. Todos los derechos reservados.</p>
+                <p>Desarrollado por <a href="https://github.com/tcasaniv">Terry Joel Casani Valencia</a> en 2024 originalmente para visualizar planes de estudio de cualquier tema.</p>
+                <p>&copy; 2026. Todos los derechos reservados.</p>
             </div>
         )
     });
